@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG - Accueil</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="has-hud theme-neonwave" data-page="home">
+  <header class="hud" aria-label="HUD joueur">
+    <div class="hud-pill">
+      <p class="hud-label">Nom</p>
+      <p class="hud-value" id="hud-name">-</p>
+    </div>
+    <div class="hud-pill">
+      <p class="hud-label">HP</p>
+      <p class="hud-value" id="hud-hp">-</p>
+    </div>
+    <div class="hud-pill">
+      <p class="hud-label">Mana</p>
+      <p class="hud-value" id="hud-mana">-</p>
+    </div>
+    <div class="hud-pill">
+      <p class="hud-label">Or</p>
+      <p class="hud-value" id="hud-gold">-</p>
+    </div>
+  </header>
+
+  <main class="panel home-shell">
+    <header class="panel-header">
+      <h1 class="hero-title">🎮 Tableau de Bord</h1>
+      <p class="hero-class"><strong id="hero-name">-</strong> - <span id="hero-class">-</span></p>
+    </header>
+
+    <section class="player-meta">
+      <p class="meta-pill">⭐ Niveau <span id="meta-level">-</span></p>
+      <p class="meta-pill">📊 XP <span id="meta-xp">-</span></p>
+      <p class="meta-pill">🧠 Competences: <span id="meta-skills">-</span></p>
+      <p class="meta-pill">🎒 Objets: <span id="meta-items">-</span></p>
+      <p class="meta-pill">🔫 Arme: <span id="meta-weapon">-</span></p>
+      <p class="meta-pill">📦 Munitions: <span id="meta-ammo">-</span></p>
+    </section>
+
+    <section class="status-card">
+      <p class="status-label">Progression XP</p>
+      <div class="bar xp" id="xp-bar" style="--value: 0%;">
+        <span></span>
+      </div>
+
+      <form class="name-form" id="name-form">
+        <label for="name">Nom du personnage</label>
+        <div class="name-form-row">
+          <input id="name" name="name" type="text" maxlength="24" value="" required>
+          <button type="submit">Changer</button>
+        </div>
+      </form>
+    </section>
+
+    <div class="actions">
+      <a href="inventory.html">🎒 Inventaire</a>
+      <a href="shop.html">🛒 Marchand</a>
+      <a href="fight.html">⚔️ Combat</a>
+      <a href="#" id="save-link">💾 Save</a>
+      <a href="#" id="load-link">📂 Load</a>
+    </div>
+
+    <div class="actions">
+      <a class="btn-secondary" href="index.html?theme=neonwave">Theme Neon Wave</a>
+      <a class="btn-secondary" href="index.html?theme=avifwave">Theme Image AVIF</a>
+      <a class="btn-secondary" href="index.html?theme=polygonwave">Theme Polygon</a>
+      <a class="btn-secondary" href="#" id="sound-toggle">Son: ON</a>
+      <a class="btn-danger" href="#" id="reset-link">Reset partie</a>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

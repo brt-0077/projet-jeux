@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marchand</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="has-hud theme-neonwave" data-page="shop">
+<header class="hud" aria-label="HUD joueur">
+	<div class="hud-pill">
+		<p class="hud-label">Nom</p>
+		<p class="hud-value" id="hud-name">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">HP</p>
+		<p class="hud-value" id="hud-hp">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">Mana</p>
+		<p class="hud-value" id="hud-mana">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">Or</p>
+		<p class="hud-value" id="hud-gold">-</p>
+	</div>
+</header>
+<main class="panel shop-shell">
+	<header class="panel-header">
+		<h1>🛒 Marchand</h1>
+		<p class="subtitle">Equipez votre personnage et preparez le prochain combat</p>
+		<p class="shop-gold">💰 Or disponible: <span id="shop-gold">-</span></p>
+	</header>
+
+	<section class="shop-grid">
+		<article class="shop-item rarity-common">
+			<span class="rarity-tag common">Commun</span>
+			<div class="shop-item-header">
+				<h2>🧪 Potion</h2>
+				<span class="shop-price">3 or</span>
+			</div>
+			<p>Restaure 10 PV sans depasser le maximum.</p>
+			<button class="btn-primary buy-btn" data-item="Potion">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-common">
+			<span class="rarity-tag common">Commun</span>
+			<div class="shop-item-header">
+				<h2>☠️ Poison</h2>
+				<span class="shop-price">6 or</span>
+			</div>
+			<p>Inflige 5 PV de degats a l'utilisateur.</p>
+			<button class="btn-primary buy-btn" data-item="Poison">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-epic">
+			<span class="rarity-tag epic">Epique</span>
+			<div class="shop-item-header">
+				<h2>📘 Livre</h2>
+				<span class="shop-price">25 or</span>
+			</div>
+			<p>Debloque Boule de feu si vous ne l'avez pas deja.</p>
+			<button class="btn-secondary buy-btn" data-item="Livre">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-rare">
+			<span class="rarity-tag rare">Rare</span>
+			<div class="shop-item-header">
+				<h2>🪖 Casque</h2>
+				<span class="shop-price">10 or</span>
+			</div>
+			<p>Equipement tete qui augmente les PV max de 5.</p>
+			<button class="btn-secondary buy-btn" data-item="Casque">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-epic">
+			<span class="rarity-tag epic">Epique</span>
+			<div class="shop-item-header">
+				<h2>🛡️ Armure</h2>
+				<span class="shop-price">20 or</span>
+			</div>
+			<p>Equipement corps qui augmente les PV max de 10.</p>
+			<button class="btn-secondary buy-btn" data-item="Armure">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-rare">
+			<span class="rarity-tag rare">Rare</span>
+			<div class="shop-item-header">
+				<h2>🥾 Bottes</h2>
+				<span class="shop-price">15 or</span>
+			</div>
+			<p>Equipement pieds qui augmente les PV max de 5.</p>
+			<button class="btn-secondary buy-btn" data-item="Bottes">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-rare">
+			<span class="rarity-tag rare">Rare</span>
+			<div class="shop-item-header">
+				<h2>🔫 Pistolet</h2>
+				<span class="shop-price">40 or</span>
+			</div>
+			<p>Arme a feu puissante. Consomme 1 munition par tir.</p>
+			<button class="btn-secondary buy-btn" data-item="Pistolet">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-epic">
+			<span class="rarity-tag epic">Epique</span>
+			<div class="shop-item-header">
+				<h2>🟣 Laser</h2>
+				<span class="shop-price">65 or</span>
+			</div>
+			<p>Arme energie devastatrice. Ne consomme pas de munitions.</p>
+			<button class="btn-secondary buy-btn" data-item="Laser">Acheter</button>
+		</article>
+
+		<article class="shop-item rarity-common">
+			<span class="rarity-tag common">Commun</span>
+			<div class="shop-item-header">
+				<h2>📦 Munitions</h2>
+				<span class="shop-price">8 or</span>
+			</div>
+			<p>Pack de 6 munitions pour le pistolet (a utiliser depuis inventaire).</p>
+			<button class="btn-primary buy-btn" data-item="Munitions">Acheter</button>
+		</article>
+	</section>
+
+	<a class="back-link" href="index.html">⬅ Retour</a>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventaire</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="has-hud theme-neonwave" data-page="inventory">
+<header class="hud" aria-label="HUD joueur">
+	<div class="hud-pill">
+		<p class="hud-label">Nom</p>
+		<p class="hud-value" id="hud-name">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">HP</p>
+		<p class="hud-value" id="hud-hp">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">Mana</p>
+		<p class="hud-value" id="hud-mana">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">Or</p>
+		<p class="hud-value" id="hud-gold">-</p>
+	</div>
+</header>
+<main class="panel inventory-shell">
+	<header class="panel-header">
+		<h1>🎒 Inventaire</h1>
+		<p class="subtitle">Equipez ou consommez vos ressources</p>
+	</header>
+
+	<section class="inventory-grid" id="inventory-grid">
+	</section>
+
+	<a class="back-link" href="index.html">⬅ Retour</a>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

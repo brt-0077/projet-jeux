@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Combat</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="has-hud theme-neonwave" data-page="fight">
+<header class="hud" aria-label="HUD joueur">
+	<div class="hud-pill">
+		<p class="hud-label">Nom</p>
+		<p class="hud-value" id="hud-name">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">HP</p>
+		<p class="hud-value" id="hud-hp">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">Mana</p>
+		<p class="hud-value" id="hud-mana">-</p>
+	</div>
+	<div class="hud-pill">
+		<p class="hud-label">Or</p>
+		<p class="hud-value" id="hud-gold">-</p>
+	</div>
+</header>
+<main class="panel combat-shell">
+	<header class="panel-header">
+		<h1>⚔️ Combat</h1>
+		<p class="subtitle">Duel en temps reel narratif</p>
+	</header>
+
+	<section class="arena-2d" aria-label="Carte de combat 2D">
+		<div class="arena-horizon"></div>
+		<div class="arena-grid"></div>
+		<div class="fighter player-fighter">
+			<div class="fighter-shadow"></div>
+			<div class="fighter-sprite">🧙</div>
+			<p class="fighter-name" id="player-name-fight">-</p>
+		</div>
+		<div class="fighter enemy-fighter" id="enemy-fighter">
+			<div class="fighter-shadow"></div>
+			<div class="fighter-sprite">👹</div>
+			<p class="fighter-name" id="monster-name-fight">-</p>
+		</div>
+	</section>
+
+	<section class="status-grid">
+		<article class="status-card player-card">
+			<h2>👤 <span id="player-name-card">-</span></h2>
+			<p class="status-label">Arme <span id="weapon-name">-</span> | Munitions <span id="player-ammo">-</span></p>
+			<p class="status-label">PV <span id="player-hp-text">-</span></p>
+			<div class="bar hp" id="player-hp-bar" style="--value: 0%;">
+				<span></span>
+			</div>
+			<p class="status-label">Mana <span id="player-mana-text">-</span></p>
+			<div class="bar mana" id="player-mana-bar" style="--value: 0%;">
+				<span></span>
+			</div>
+			<p class="status-label">XP <span id="player-xp-text">-</span></p>
+			<div class="bar xp" id="player-xp-bar" style="--value: 0%;">
+				<span></span>
+			</div>
+		</article>
+
+		<article class="status-card enemy-card" id="enemy-card">
+			<h2>👹 <span id="monster-name-card">-</span></h2>
+			<p class="status-label">PV <span id="monster-hp-text">-</span></p>
+			<div class="bar hp enemy" id="monster-hp-bar" style="--value: 0%;">
+				<span></span>
+			</div>
+		</article>
+	</section>
+
+	<section class="action-row">
+		<button class="btn-primary" id="attack-btn">Attaque</button>
+		<button class="btn-secondary" id="fireball-btn">🔥 Boule de feu</button>
+	</section>
+
+	<section class="battle-log">
+		<h3>Journal du combat</h3>
+		<ul id="combat-log">
+		</ul>
+	</section>
+
+	<a class="back-link" href="index.html">⬅ Retour</a>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
