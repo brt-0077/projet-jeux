@@ -341,13 +341,13 @@ button:focus-visible {
 }
 
 body[data-page="fight"] .panel.combat-shell {
-    width: min(1220px, 98vw);
-    padding: 14px;
+    width: min(1000px, 96vw);
+    padding: 12px;
 }
 
 .arena-2d {
     position: relative;
-    min-height: clamp(430px, 70vh, 740px);
+    min-height: clamp(550px, 85vh, 1000px);
     border-radius: 16px;
     border: 1px solid rgba(255, 255, 255, 0.14);
     overflow: hidden;
@@ -545,7 +545,7 @@ body[data-page="fight"] .panel.combat-shell {
 }
 
 .fighter-sprite {
-    font-size: 4.2rem;
+    font-size: 7.5rem;
     line-height: 1;
     filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
 }
@@ -565,6 +565,50 @@ body[data-page="fight"] .panel.combat-shell {
     font-weight: 700;
     color: #edf5ff;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.fighter-hp-bar {
+    width: 100px;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+}
+
+.fighter-hp-fill {
+    width: var(--value);
+    height: 100%;
+    background: linear-gradient(90deg, #4cff7b, #2dd55f);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.enemy-fighter .fighter-hp-fill {
+    background: linear-gradient(90deg, #ff4d5a, #d63847);
+}
+
+.fighter-hp-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fighter-hp-text {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-soft);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+}
+
+.player-fighter .fighter-hp-text {
+    color: #4cff7b;
+}
+
+.enemy-fighter .fighter-hp-text {
+    color: #ff4d5a;
 }
 
 .enemy-fighter.enemy-hit .fighter-sprite {
@@ -1007,8 +1051,8 @@ body[data-page="fight"] .panel.combat-shell {
 
 .hero-avatar {
     margin-top: 10px;
-    width: 92px;
-    height: 92px;
+    width: 60px;
+    height: 60px;
     object-fit: cover;
     border-radius: 14px;
     border: 2px solid rgba(255, 255, 255, 0.25);
@@ -1022,17 +1066,17 @@ body[data-page="fight"] .panel.combat-shell {
 
 .character-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
 }
 
 .character-card {
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 12px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.05);
-    padding: 10px;
+    padding: 4px;
     display: grid;
-    gap: 6px;
+    gap: 2px;
 }
 
 .character-card.active {
@@ -1042,13 +1086,13 @@ body[data-page="fight"] .panel.combat-shell {
 
 .character-card h3 {
     margin: 0;
-    font-size: 0.98rem;
+    font-size: 0.7rem;
 }
 
 .character-class,
 .character-stats {
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 0.65rem;
     color: var(--text-soft);
 }
 
@@ -1419,5 +1463,99 @@ body[data-page="fight"] .panel.combat-shell {
     to {
         opacity: 0;
         transform: scale(1.9);
+    }
+}
+
+/* SETTINGS PAGE STYLES */
+.settings-shell {
+    max-width: 600px;
+}
+
+.settings-group {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.settings-title {
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.theme-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.theme-btn:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.theme-btn.active {
+    border-color: var(--accent-2);
+    box-shadow: 0 0 16px rgba(120, 255, 214, 0.3);
+    background: rgba(120, 255, 214, 0.1);
+}
+
+.theme-preview {
+    display: block;
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-btn-1 .theme-preview {
+    background: linear-gradient(135deg, #ffb347, #78ffd6);
+}
+
+.theme-btn-2 .theme-preview {
+    background: linear-gradient(135deg, #47f0ff, #ff4bb8);
+}
+
+.theme-btn-3 .theme-preview {
+    background: linear-gradient(135deg, #ffb84e, #56d6ff);
+}
+
+.sound-control {
+    display: flex;
+    gap: 12px;
+}
+
+.sound-control button {
+    flex: 1;
+    padding: 12px 20px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+    .settings-shell {
+        max-width: 100%;
+    }
+
+    .theme-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     }
 }

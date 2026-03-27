@@ -484,10 +484,20 @@ function useItem(item) {
       }
       return { ok: true, message: "Livre utilise: aucune nouvelle competence.", type: "info" };
     case "Casque":
+      if (!consumeItemOnce("Casque")) return { ok: false, message: "Objet introuvable dans l'inventaire.", type: "error" };
+      state.player.MaxHP += 5;
+      state.player.HP = Math.min(state.player.MaxHP, state.player.HP + 5);
+      return { ok: true, message: "Casque utilise: +5 PV max et +5 PV actuels.", type: "success" };
     case "Armure":
+      if (!consumeItemOnce("Armure")) return { ok: false, message: "Objet introuvable dans l'inventaire.", type: "error" };
+      state.player.MaxHP += 10;
+      state.player.HP = Math.min(state.player.MaxHP, state.player.HP + 10);
+      return { ok: true, message: "Armure utilisee: +10 PV max et +10 PV actuels.", type: "success" };
     case "Bottes":
-      equipItem(item);
-      return { ok: true, message: `${item} equipe.`, type: "success" };
+      if (!consumeItemOnce("Bottes")) return { ok: false, message: "Objet introuvable dans l'inventaire.", type: "error" };
+      state.player.MaxHP += 5;
+      state.player.HP = Math.min(state.player.MaxHP, state.player.HP + 5);
+      return { ok: true, message: "Bottes utilisees: +5 PV max et +5 PV actuels.", type: "success" };
     case "Pistolet":
     case "Epee":
     case "Laser":
@@ -813,6 +823,40 @@ function renderShop() {
   });
 }
 
+function renderSettings() {
+  // Theme buttons
+  const themeBtns = document.querySelectorAll(".theme-btn");
+  themeBtns.forEach((btn) => {
+    const themeClass = btn.getAttribute("data-theme");
+    if (`theme-${state.theme}` === themeClass) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+    btn.onclick = () => {
+      const fullTheme = themeClass.replace("theme-", "");
+      state.theme = fullTheme;
+      applyTheme();
+      saveState();
+      renderSettings();
+    };
+  });
+
+  // Sound toggle
+  const soundToggleBtn = document.getElementById("sound-toggle");
+  const soundStatus = document.getElementById("sound-status");
+  if (soundToggleBtn && soundStatus) {
+    soundStatus.textContent = state.soundEnabled ? "ON" : "OFF";
+    soundToggleBtn.onclick = (e) => {
+      e.preventDefault();
+      state.soundEnabled = !state.soundEnabled;
+      soundStatus.textContent = state.soundEnabled ? "ON" : "OFF";
+      saveState();
+      showToast(`Son: ${state.soundEnabled ? "activé" : "désactivé"}`, "success");
+    };
+  }
+}
+
 function setBarState(bar, stateName) {
   if (!bar) return;
   bar.classList.remove("bar-gain", "bar-loss");
@@ -847,20 +891,26 @@ function renderFight() {
   setText("weapon-name", equippedWeaponName());
   setText("player-ammo", `${state.player.Ammo} | Laser ${state.player.LaserShots}`);
   setText("player-hp-text", `${state.player.HP} / ${state.player.MaxHP}`);
+  setText("player-hp-text-arena", `${state.player.HP} / ${state.player.MaxHP}`);
   setText("player-mana-text", `${state.player.Mana} / ${state.player.MaxMana}`);
   setText("player-xp-text", `${state.player.Exp} / ${state.player.MaxExp}`);
   setText("monster-name-card", state.goblin.Name);
   setText("monster-hp-text", `${state.goblin.HP} / ${state.goblin.MaxHP}`);
+  setText("monster-hp-text-arena", `${state.goblin.HP} / ${state.goblin.MaxHP}`);
 
   const playerHPBar = document.getElementById("player-hp-bar");
   const playerManaBar = document.getElementById("player-mana-bar");
   const playerXPBar = document.getElementById("player-xp-bar");
   const monsterHPBar = document.getElementById("monster-hp-bar");
+  const playerArenaHPBar = document.getElementById("player-arena-hp-bar");
+  const monsterArenaHPBar = document.getElementById("monster-arena-hp-bar");
 
   if (playerHPBar) playerHPBar.style.setProperty("--value", `${hpPercent}%`);
   if (playerManaBar) playerManaBar.style.setProperty("--value", `${manaPercent}%`);
   if (playerXPBar) playerXPBar.style.setProperty("--value", `${xpPercent}%`);
   if (monsterHPBar) monsterHPBar.style.setProperty("--value", `${monsterPercent}%`);
+  if (playerArenaHPBar) playerArenaHPBar.style.setProperty("--value", `${hpPercent}%`);
+  if (monsterArenaHPBar) monsterArenaHPBar.style.setProperty("--value", `${monsterPercent}%`);
 
   setBarState(playerHPBar, hpState);
   setBarState(playerManaBar, manaState);
@@ -1034,6 +1084,33 @@ function renderFight() {
       renderFight();
     };
   }
+
+  const grenadeBtn = document.getElementById("grenade-btn");
+  if (grenadeBtn) {
+    const grenadeCount = state.player.Inventory.filter(i => i === "Grenade").length;
+    grenadeBtn.textContent = `💣 Grenade (${grenadeCount})`;
+    grenadeBtn.disabled = isPlayerDead || grenadeCount === 0;
+    grenadeBtn.onclick = () => {
+      if (state.player.HP <= 0) return;
+      const result = useItem("Grenade");
+      if (result.ok) {
+        state.enemyHitFlash = true;
+        pushCombatMessage(result.message, result.type);
+        if (state.goblin.HP <= 0) {
+          saveState();
+          fillHud();
+          renderFight();
+          return;
+        }
+      } else {
+        pushCombatMessage(result.message, result.type);
+      }
+      enemyTurn();
+      saveState();
+      fillHud();
+      renderFight();
+    };
+  }
 }
 
 function detectPage() {
@@ -1044,6 +1121,7 @@ function detectPage() {
   if (fileName === "inventory.html") return "inventory";
   if (fileName === "shop.html") return "shop";
   if (fileName === "fight.html") return "fight";
+  if (fileName === "settings.html") return "settings";
   return "home";
 }
 
@@ -1056,6 +1134,7 @@ function bootstrap() {
   if (page === "inventory") renderInventory();
   if (page === "shop") renderShop();
   if (page === "fight") renderFight();
+  if (page === "settings") renderSettings();
 
   saveState();
 }

@@ -39,54 +39,35 @@
 		<div class="arena-horizon"></div>
 		<div class="arena-grid"></div>
 		<div class="fighter player-fighter">
+			<div class="fighter-hp-container">
+				<div class="fighter-hp-bar">
+					<div class="fighter-hp-fill" id="player-arena-hp-bar" style="--value: 100%;"></div>
+				</div>
+				<p class="fighter-hp-text" id="player-hp-text-arena">-</p>
+			</div>
 			<div class="fighter-shadow"></div>
 			<div class="fighter-sprite" id="player-sprite">🧙</div>
 			<p class="fighter-name" id="player-name-fight">-</p>
 		</div>
 		<div class="fighter enemy-fighter" id="enemy-fighter">
+			<div class="fighter-hp-container">
+				<div class="fighter-hp-bar">
+					<div class="fighter-hp-fill" id="monster-arena-hp-bar" style="--value: 100%;"></div>
+				</div>
+				<p class="fighter-hp-text" id="monster-hp-text-arena">-</p>
+			</div>
 			<div class="fighter-shadow"></div>
 			<div class="fighter-sprite" id="enemy-sprite">👹</div>
 			<p class="fighter-name" id="monster-name-fight">-</p>
 		</div>
 	</section>
 
-	<section class="status-grid">
-		<article class="status-card player-card">
-			<h2>👤 <span id="player-name-card">-</span></h2>
-			<p class="status-label">Arme <span id="weapon-name">-</span> | Munitions <span id="player-ammo">-</span></p>
-			<p class="status-label">PV <span id="player-hp-text">-</span></p>
-			<div class="bar hp" id="player-hp-bar" style="--value: 0%;">
-				<span></span>
-			</div>
-			<p class="status-label">Mana <span id="player-mana-text">-</span></p>
-			<div class="bar mana" id="player-mana-bar" style="--value: 0%;">
-				<span></span>
-			</div>
-			<p class="status-label">XP <span id="player-xp-text">-</span></p>
-			<div class="bar xp" id="player-xp-bar" style="--value: 0%;">
-				<span></span>
-			</div>
-		</article>
-
-		<article class="status-card enemy-card" id="enemy-card">
-			<h2>👹 <span id="monster-name-card">-</span></h2>
-			<p class="status-label">PV <span id="monster-hp-text">-</span></p>
-			<div class="bar hp enemy" id="monster-hp-bar" style="--value: 0%;">
-				<span></span>
-			</div>
-		</article>
-	</section>
 
 	<section class="action-row">
 		<button class="btn-primary" id="attack-btn">Attaque</button>
 		<button class="btn-secondary" id="fireball-btn">🔥 Boule de feu</button>
+		<button class="btn-secondary" id="grenade-btn">💣 Grenade</button>
 		<button class="btn-danger" id="restart-btn" hidden>Recommencer</button>
-	</section>
-
-	<section class="battle-log">
-		<h3>Journal du combat</h3>
-		<ul id="combat-log">
-		</ul>
 	</section>
 
 	<a class="back-link" href="index.html">⬅ Retour</a>

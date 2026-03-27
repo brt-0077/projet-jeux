@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paramètres</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="has-hud theme-neonwave" data-page="settings">
+  <header class="hud" aria-label="HUD joueur">
+    <div class="hud-pill">
+      <p class="hud-label">Nom</p>
+      <p class="hud-value" id="hud-name">-</p>
+    </div>
+    <div class="hud-pill">
+      <p class="hud-label">HP</p>
+      <p class="hud-value" id="hud-hp">-</p>
+    </div>
+    <div class="hud-pill">
+      <p class="hud-label">Mana</p>
+      <p class="hud-value" id="hud-mana">-</p>
+    </div>
+    <div class="hud-pill">
+      <p class="hud-label">Or</p>
+      <p class="hud-value" id="hud-gold">-</p>
+    </div>
+  </header>
+
+  <main class="panel settings-shell">
+    <header class="panel-header">
+      <h1>⚙️ Paramètres</h1>
+      <p class="subtitle">Personnalise ton expérience de jeu</p>
+    </header>
+
+    <section class="settings-group">
+      <h2 class="settings-title">🎨 Thèmes</h2>
+      <div class="theme-grid">
+        <button class="theme-btn theme-btn-1" data-theme="theme-neonwave">
+          <span class="theme-preview"></span>
+          <p>Thème 1</p>
+        </button>
+        <button class="theme-btn theme-btn-2" data-theme="theme-avifwave">
+          <span class="theme-preview"></span>
+          <p>Thème 2</p>
+        </button>
+        <button class="theme-btn theme-btn-3" data-theme="theme-polygonwave">
+          <span class="theme-preview"></span>
+          <p>Thème 3</p>
+        </button>
+      </div>
+    </section>
+
+    <section class="settings-group">
+      <h2 class="settings-title">🔊 Son</h2>
+      <div class="sound-control">
+        <button class="btn-secondary" id="sound-toggle">
+          Son: <span id="sound-status">ON</span>
+        </button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <a href="index.html">⬅ Retour</a>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
