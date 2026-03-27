@@ -1,22 +1,69 @@
 const STATE_KEY = "projet-red-state";
 const SAVE_SLOT_KEY = "projet-red-save-slot";
-
-function defaultPlayer() {
-  return {
-    Name: "Heros",
-    Class: "Mage",
-    Level: 1,
-    HP: 100,
+const ARENA_COUNT = 6;
+const RESTART_LIMIT = 3;
+const RESTART_COOLDOWN_MS = 10 * 60 * 1000;
+const CHARACTER_PRESETS = [
+  {
+    Id: "viking",
+    Name: "Ragnar",
+    Class: "Viking",
+    Avatar: "Viking style Kratos .png",
+    FighterIcon: "🪓",
+    MaxHP: 115,
+    MaxMana: 8,
+    Gold: 50,
+    Skills: ["Coup de poing"],
+  },
+  {
+    Id: "militaire",
+    Name: "Orion",
+    Class: "Soldat",
+    Avatar: "Personnage militaire.png",
+    FighterIcon: "🪖",
     MaxHP: 100,
-    Mana: 10,
     MaxMana: 10,
-    Gold: 10,
+    Gold: 50,
+    Skills: ["Coup de poing"],
+  },
+  {
+    Id: "zeusbot",
+    Name: "Zephyr",
+    Class: "Robot",
+    Avatar: "Robot style Zeus Rea.png",
+    FighterIcon: "🤖",
+    MaxHP: 92,
+    MaxMana: 16,
+    Gold: 50,
+    Skills: ["Coup de poing", "Boule de feu"],
+  },
+];
+
+function getCharacterPreset(id) {
+  return CHARACTER_PRESETS.find((entry) => entry.Id === id) || CHARACTER_PRESETS[0];
+}
+
+function playerFromCharacter(id) {
+  const preset = getCharacterPreset(id);
+  return {
+    CharacterId: preset.Id,
+    Avatar: preset.Avatar,
+    FighterIcon: preset.FighterIcon,
+    Name: preset.Name,
+    Class: preset.Class,
+    Level: 1,
+    HP: preset.MaxHP,
+    MaxHP: preset.MaxHP,
+    Mana: preset.MaxMana,
+    MaxMana: preset.MaxMana,
+    Gold: preset.Gold,
     Exp: 0,
     MaxExp: 10,
     Turn: 0,
     Inventory: ["Potion", "Potion"],
-    Skills: ["Coup de poing"],
+    Skills: [...preset.Skills],
     Ammo: 0,
+    LaserShots: 0,
     Equip: {
       Head: "",
       Body: "",
@@ -24,6 +71,15 @@ function defaultPlayer() {
       Weapon: "",
     },
   };
+}
+
+function arenaTierForLevel(level) {
+  const safe = maxInt(level, 1);
+  return Math.min(ARENA_COUNT, safe);
+}
+
+function defaultPlayer() {
+  return playerFromCharacter(CHARACTER_PRESETS[0].Id);
 }
 
 function maxInt(a, b) {
@@ -39,11 +95,12 @@ function clampPercent(current, max) {
 }
 
 function monsterForLevel(level) {
+  const arenaTier = arenaTierForLevel(level);
   const names = ["Gobelin", "Orc", "Troll", "Wyrm", "Demon", "Titan"];
-  const name = names[(maxInt(level, 1) - 1) % names.length];
-  const maxHP = 70 + level * 22;
-  const atk = 7 + level * 3;
-  return { Name: name, HP: maxHP, MaxHP: maxHP, Atk: atk };
+  const name = names[arenaTier - 1];
+  const maxHP = 60 + level * 20 + arenaTier * 16;
+  const atk = 6 + level * 3 + arenaTier * 2;
+  return { Name: name, HP: maxHP, MaxHP: maxHP, Atk: atk, ArenaTier: arenaTier };
 }
 
 function emptyState() {
@@ -55,6 +112,10 @@ function emptyState() {
     enemyHitFlash: false,
     lastFightHP: player.HP,
     lastFightMana: player.Mana,
+    restartControl: {
+      used: 0,
+      cooldownUntil: 0,
+    },
     theme: "neonwave",
     soundEnabled: true,
   };
@@ -90,7 +151,13 @@ function loadState() {
     if (!Array.isArray(state.player.Inventory)) state.player.Inventory = [];
     if (!Array.isArray(state.player.Skills)) state.player.Skills = [];
     if (!Number.isFinite(state.player.Ammo)) state.player.Ammo = 0;
+    if (!Number.isFinite(state.player.LaserShots)) state.player.LaserShots = 0;
     if (!Number.isFinite(state.player.Turn)) state.player.Turn = 0;
+    if (!state.restartControl || typeof state.restartControl !== "object") {
+      state.restartControl = { used: 0, cooldownUntil: 0 };
+    }
+    if (!Number.isFinite(state.restartControl.used)) state.restartControl.used = 0;
+    if (!Number.isFinite(state.restartControl.cooldownUntil)) state.restartControl.cooldownUntil = 0;
     if (typeof state.soundEnabled !== "boolean") state.soundEnabled = true;
 
     return state;
@@ -101,6 +168,7 @@ function loadState() {
 
 let state = loadState();
 let toastAudioContext = null;
+let deathRefreshTimeoutId = 0;
 
 function saveState() {
   localStorage.setItem(STATE_KEY, JSON.stringify(state));
@@ -165,8 +233,82 @@ function showToast(message, type = "info") {
   }, 2400);
 }
 
+function formatRemainingMs(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes > 0) return `${minutes}m ${seconds}s`;
+  return `${seconds}s`;
+}
+
+function normalizeRestartControl() {
+  if (!state.restartControl || typeof state.restartControl !== "object") {
+    state.restartControl = { used: 0, cooldownUntil: 0 };
+  }
+  if (!Number.isFinite(state.restartControl.used)) state.restartControl.used = 0;
+  if (!Number.isFinite(state.restartControl.cooldownUntil)) state.restartControl.cooldownUntil = 0;
+
+  if (state.restartControl.cooldownUntil > 0 && Date.now() >= state.restartControl.cooldownUntil) {
+    state.restartControl.used = 0;
+    state.restartControl.cooldownUntil = 0;
+    saveState();
+  }
+}
+
+function getRestartStatus() {
+  normalizeRestartControl();
+  const now = Date.now();
+  const inCooldown = state.restartControl.cooldownUntil > now;
+  const remainingMs = inCooldown ? state.restartControl.cooldownUntil - now : 0;
+  const attemptsLeft = Math.max(0, RESTART_LIMIT - state.restartControl.used);
+  return {
+    inCooldown,
+    remainingMs,
+    attemptsLeft,
+  };
+}
+
+function consumeRestartAttempt() {
+  const now = Date.now();
+  normalizeRestartControl();
+
+  if (state.restartControl.cooldownUntil > now) {
+    return { ok: false, waitMs: state.restartControl.cooldownUntil - now };
+  }
+
+  if (state.restartControl.used >= RESTART_LIMIT) {
+    state.restartControl.cooldownUntil = now + RESTART_COOLDOWN_MS;
+    saveState();
+    return { ok: false, waitMs: RESTART_COOLDOWN_MS };
+  }
+
+  state.restartControl.used += 1;
+  if (state.restartControl.used >= RESTART_LIMIT) {
+    state.restartControl.cooldownUntil = now + RESTART_COOLDOWN_MS;
+  }
+  saveState();
+  return {
+    ok: true,
+    attemptsLeft: Math.max(0, RESTART_LIMIT - state.restartControl.used),
+  };
+}
+
+function restartAfterDeath() {
+  const currentCharacter = state.player.CharacterId || CHARACTER_PRESETS[0].Id;
+  const freshPlayer = playerFromCharacter(currentCharacter);
+  state.player = freshPlayer;
+  state.goblin = monsterForLevel(freshPlayer.Level);
+  state.combatLog = [{ Text: "Nouvelle tentative lancee.", Type: "system" }];
+  state.enemyHitFlash = false;
+  state.lastFightHP = freshPlayer.HP;
+  state.lastFightMana = freshPlayer.Mana;
+}
+
 function sanitizeTheme(raw) {
-  return raw === "neonwave" || raw === "avifwave" || raw === "polygonwave" ? raw : "neonwave";
+  if (raw === "theme1" || raw === "neonwave") return "neonwave";
+  if (raw === "theme2" || raw === "avifwave") return "avifwave";
+  if (raw === "theme3" || raw === "polygonwave") return "polygonwave";
+  return "neonwave";
 }
 
 function applyTheme() {
@@ -194,6 +336,7 @@ function pushCombatMessage(text, type) {
 
 function gainXP(amount) {
   const player = state.player;
+  const oldArenaTier = arenaTierForLevel(player.Level);
   player.Exp += amount;
   if (player.Exp >= player.MaxExp) {
     player.Level += 1;
@@ -204,6 +347,10 @@ function gainXP(amount) {
     player.HP = player.MaxHP;
     player.Mana = player.MaxMana;
     state.goblin = monsterForLevel(player.Level);
+    const newArenaTier = arenaTierForLevel(player.Level);
+    if (newArenaTier > oldArenaTier) {
+      pushCombatMessage(`Nouvelle arene debloquee: Arene ${newArenaTier}. Le combat devient plus difficile.`, "warning");
+    }
     pushCombatMessage(`Niveau ${player.Level} atteint. Un ${state.goblin.Name} plus puissant apparait!`, "system");
   }
 }
@@ -223,15 +370,25 @@ function enemyAttackDamage() {
 function attackProfile() {
   const base = basicAttackDamage();
   switch (state.player.Equip.Weapon) {
+    case "Epee":
+      return { mode: "Epee", damage: maxInt(base + 4, Math.floor(state.player.MaxHP / 6)), consume: "none" };
     case "Pistolet":
       if (state.player.Ammo > 0) {
-        return { mode: "Pistolet", damage: maxInt(base + 10, Math.floor(state.player.MaxHP / 4)), usesAmmo: true };
+        return { mode: "Pistolet", damage: maxInt(base + 10, Math.floor(state.player.MaxHP / 4)), consume: "ammo" };
       }
-      return { mode: "Pistolet (sans munitions)", damage: base, usesAmmo: false };
+      return { mode: "Pistolet (sans munitions)", damage: base, consume: "none" };
     case "Laser":
-      return { mode: "Laser", damage: maxInt(base + 18, Math.floor(state.player.MaxHP / 3)), usesAmmo: false };
+      if (state.player.LaserShots > 0) {
+        return { mode: "Laser", damage: maxInt(base + 18, Math.floor(state.player.MaxHP / 3)), consume: "laser" };
+      }
+      return { mode: "Laser (sans batterie)", damage: base, consume: "none" };
+    case "Lance-roquettes":
+      if (state.player.Ammo > 0) {
+        return { mode: "Lance-roquettes", damage: maxInt(base + 16, Math.floor(state.player.MaxHP / 2.5)), consume: "ammo" };
+      }
+      return { mode: "Lance-roquettes (sans munitions)", damage: base, consume: "none" };
     default:
-      return { mode: "Coup de poing", damage: base, usesAmmo: false };
+      return { mode: "Coup de poing", damage: base, consume: "none" };
   }
 }
 
@@ -254,8 +411,12 @@ function iconForItem(item) {
     case "Armure": return "🛡️";
     case "Bottes": return "🥾";
     case "Pistolet": return "🔫";
+    case "Epee": return "⚔️";
     case "Laser": return "🟣";
+    case "Lance-roquettes": return "🚀";
     case "Munitions": return "📦";
+    case "Batterie": return "🔋";
+    case "Grenade": return "💣";
     default: return "🎒";
   }
 }
@@ -269,8 +430,12 @@ function itemDescription(item) {
     case "Armure": return "Equipement corps: +10 PV max.";
     case "Bottes": return "Equipement pieds: +5 PV max.";
     case "Pistolet": return "Arme a feu: gros degats, consomme 1 munition par tir.";
+    case "Epee": return "Arme melee fiable: degats ameliores sans munition.";
     case "Laser": return "Arme energie: tres gros degats, sans munition.";
-    case "Munitions": return "Recharge de 6 munitions pour le pistolet.";
+    case "Lance-roquettes": return "Arme lourde: tres gros degats, consomme 1 munition par tir.";
+    case "Munitions": return "Recharge de 6 munitions pour le pistolet et le lance-roquettes.";
+    case "Batterie": return "Batterie laser: +2 tirs pour le laser.";
+    case "Grenade": return "Consommable explosif: -22 PV au monstre actuel.";
     default: return "Objet de voyage utile selon la situation.";
   }
 }
@@ -324,13 +489,30 @@ function useItem(item) {
       equipItem(item);
       return { ok: true, message: `${item} equipe.`, type: "success" };
     case "Pistolet":
+    case "Epee":
     case "Laser":
+    case "Lance-roquettes":
       state.player.Equip.Weapon = item;
       return { ok: true, message: `${item} equipe en arme.`, type: "success" };
     case "Munitions":
       if (!consumeItemOnce("Munitions")) return { ok: false, message: "Objet introuvable dans l'inventaire.", type: "error" };
       state.player.Ammo += 6;
       return { ok: true, message: "Munitions chargees: +6.", type: "success" };
+    case "Batterie":
+      if (!consumeItemOnce("Batterie")) return { ok: false, message: "Objet introuvable dans l'inventaire.", type: "error" };
+      state.player.LaserShots += 2;
+      return { ok: true, message: "Batterie utilisee: +2 tirs laser.", type: "success" };
+    case "Grenade":
+      if (!consumeItemOnce("Grenade")) return { ok: false, message: "Objet introuvable dans l'inventaire.", type: "error" };
+      state.goblin.HP -= 22;
+      if (state.goblin.HP <= 0) {
+        state.goblin = monsterForLevel(state.player.Level);
+        state.player.Gold += 10;
+        gainXP(5);
+        state.player.Turn = 0;
+        return { ok: true, message: "Grenade lancee: monstre vaincu! +10 or et +5 XP.", type: "success" };
+      }
+      return { ok: true, message: "Grenade lancee: -22 PV au monstre actuel.", type: "success" };
     default:
       return { ok: false, message: "Objet non reconnu.", type: "error" };
   }
@@ -345,8 +527,12 @@ function buyItem(item) {
     Armure: 20,
     Bottes: 15,
     Pistolet: 40,
+    Epee: 22,
     Laser: 65,
+    "Lance-roquettes": 120,
     Munitions: 8,
+    Batterie: 12,
+    Grenade: 18,
   };
   const cost = prices[item];
   if (!cost) return { ok: false, message: "Objet non reconnu.", type: "error" };
@@ -382,9 +568,9 @@ function enemyTurn() {
   }
 
   if (state.player.HP <= 0) {
-    state.player.HP = Math.floor(state.player.MaxHP / 2);
+    state.player.HP = 0;
     state.player.Turn = 0;
-    pushCombatMessage("Vous tombez au combat... Vous revenez avec la moitie de vos PV.", "warning");
+    pushCombatMessage("Vous etes mort. Le combat est termine.", "warning");
   }
 }
 
@@ -402,6 +588,46 @@ function fillHud() {
   });
 }
 
+function renderCharacterSelector() {
+  const grid = document.getElementById("character-grid");
+  if (!grid) return;
+
+  grid.innerHTML = CHARACTER_PRESETS
+    .map((entry) => {
+      const active = state.player.CharacterId === entry.Id;
+      const hpText = `${entry.MaxHP} PV`;
+      const manaText = `${entry.MaxMana} Mana`;
+      return `
+        <article class="character-card ${active ? "active" : ""}">
+          <img src="${encodeURI(entry.Avatar)}" alt="${entry.Name}" class="character-card-image">
+          <h3>${entry.Name}</h3>
+          <p class="character-class">${entry.Class}</p>
+          <p class="character-stats">${hpText} | ${manaText}</p>
+          <button class="btn-secondary choose-character-btn" data-character="${entry.Id}" ${active ? "disabled" : ""}>
+            ${active ? "Selectionne" : "Choisir"}
+          </button>
+        </article>
+      `;
+    })
+    .join("");
+
+  grid.querySelectorAll(".choose-character-btn").forEach((button) => {
+    button.onclick = () => {
+      const id = button.getAttribute("data-character");
+      const next = getCharacterPreset(id);
+      state.player = playerFromCharacter(next.Id);
+      state.goblin = monsterForLevel(state.player.Level);
+      state.combatLog = [{ Text: "Nouveau personnage choisi. Pret pour le combat.", Type: "system" }];
+      state.lastFightHP = state.player.HP;
+      state.lastFightMana = state.player.Mana;
+      saveState();
+      fillHud();
+      renderHome();
+      showToast(`${next.Name} selectionne. Nouvelle aventure lancee.`, "success");
+    };
+  });
+}
+
 function renderHome() {
   const xpPercent = clampPercent(state.player.Exp, state.player.MaxExp);
   const setText = (id, value) => {
@@ -416,7 +642,15 @@ function renderHome() {
   setText("meta-skills", state.player.Skills.length);
   setText("meta-items", state.player.Inventory.length);
   setText("meta-weapon", equippedWeaponName());
-  setText("meta-ammo", state.player.Ammo);
+  setText("meta-ammo", `${state.player.Ammo} | L:${state.player.LaserShots}`);
+
+  const heroAvatar = document.getElementById("hero-avatar");
+  if (heroAvatar) {
+    heroAvatar.setAttribute("src", encodeURI(state.player.Avatar || ""));
+    heroAvatar.setAttribute("alt", `Portrait de ${state.player.Name}`);
+  }
+
+  renderCharacterSelector();
 
   const xpBar = document.getElementById("xp-bar");
   if (xpBar) xpBar.style.setProperty("--value", `${xpPercent}%`);
@@ -511,16 +745,16 @@ function renderHome() {
 }
 
 function rarityClass(itemName) {
-  if (["Potion", "Poison", "Munitions"].includes(itemName)) return "rarity-common";
-  if (["Casque", "Bottes", "Pistolet"].includes(itemName)) return "rarity-rare";
+  if (["Potion", "Poison", "Munitions", "Batterie"].includes(itemName)) return "rarity-common";
+  if (["Casque", "Bottes", "Pistolet", "Epee", "Grenade"].includes(itemName)) return "rarity-rare";
   return "rarity-epic";
 }
 
 function rarityTag(itemName) {
-  if (["Potion", "Poison", "Munitions"].includes(itemName)) {
+  if (["Potion", "Poison", "Munitions", "Batterie"].includes(itemName)) {
     return '<span class="rarity-tag common">Commun</span>';
   }
-  if (["Casque", "Bottes", "Pistolet"].includes(itemName)) {
+  if (["Casque", "Bottes", "Pistolet", "Epee", "Grenade"].includes(itemName)) {
     return '<span class="rarity-tag rare">Rare</span>';
   }
   return '<span class="rarity-tag epic">Epique</span>';
@@ -588,6 +822,8 @@ function setBarState(bar, stateName) {
 
 function renderFight() {
   const { mode, damage } = attackProfile();
+  const arenaTier = arenaTierForLevel(state.player.Level);
+  const isPlayerDead = state.player.HP <= 0;
   const hpPercent = clampPercent(state.player.HP, state.player.MaxHP);
   const manaPercent = clampPercent(state.player.Mana, state.player.MaxMana);
   const xpPercent = clampPercent(state.player.Exp, state.player.MaxExp);
@@ -606,8 +842,10 @@ function renderFight() {
   setText("player-name-fight", state.player.Name);
   setText("monster-name-fight", state.goblin.Name);
   setText("player-name-card", state.player.Name);
+  setText("arena-name", `Arene ${arenaTier}`);
+  setText("arena-difficulty", `Difficulte ${arenaTier}/${ARENA_COUNT}`);
   setText("weapon-name", equippedWeaponName());
-  setText("player-ammo", state.player.Ammo);
+  setText("player-ammo", `${state.player.Ammo} | Laser ${state.player.LaserShots}`);
   setText("player-hp-text", `${state.player.HP} / ${state.player.MaxHP}`);
   setText("player-mana-text", `${state.player.Mana} / ${state.player.MaxMana}`);
   setText("player-xp-text", `${state.player.Exp} / ${state.player.MaxExp}`);
@@ -628,10 +866,77 @@ function renderFight() {
   setBarState(playerManaBar, manaState);
 
   const attackBtn = document.getElementById("attack-btn");
-  if (attackBtn) attackBtn.textContent = `${mode} (${damage} dmg)`;
+  const restartBtn = document.getElementById("restart-btn");
+  const playerSprite = document.getElementById("player-sprite");
+  const enemySprite = document.getElementById("enemy-sprite");
+  if (playerSprite) {
+    const avatar = state.player.Avatar ? encodeURI(state.player.Avatar) : "";
+    if (avatar) {
+      playerSprite.innerHTML = `<img src="${avatar}" alt="${state.player.Name}" class="fighter-portrait">`;
+    } else {
+      playerSprite.textContent = state.player.FighterIcon || "🧙";
+    }
+  }
+  if (enemySprite) {
+    if (state.goblin.Name === "Gobelin") {
+      enemySprite.innerHTML = '<img src="Gobelin%20r%C3%A9tro%202D%20pix.png" alt="Gobelin" class="fighter-portrait">';
+    } else if (state.goblin.Name === "Orc") {
+      enemySprite.innerHTML = '<img src="Orc%20style%20Azog%20avec%20.png" alt="Orc" class="fighter-portrait">';
+    } else if (state.goblin.Name === "Troll") {
+      enemySprite.innerHTML = '<img src="Troll%20comme%20dans%20le%20.png" alt="Troll" class="fighter-portrait">';
+    } else if (state.goblin.Name === "Wyrm") {
+      enemySprite.innerHTML = '<img src="Wyrm%20serpent%20g%C3%A9ant%20p.png" alt="Wyrm" class="fighter-portrait">';
+    } else if (state.goblin.Name === "Demon") {
+      enemySprite.innerHTML = '<img src="D%C3%A9mon%20pixel%20art%20sans.png" alt="Demon" class="fighter-portrait">';
+    } else if (state.goblin.Name === "Titan") {
+      enemySprite.innerHTML = '<img src="Squelette%20d%C3%A9moniaque.png" alt="Titan" class="fighter-portrait">';
+    } else {
+      enemySprite.textContent = "👹";
+    }
+  }
+  if (attackBtn) {
+    attackBtn.textContent = isPlayerDead ? "Vous etes mort" : `${mode} (${damage} dmg)`;
+    attackBtn.disabled = isPlayerDead;
+  }
 
   const fireballBtn = document.getElementById("fireball-btn");
-  if (fireballBtn) fireballBtn.textContent = `🔥 Boule de feu (${fireballDamage()} dmg / 5 mana)`;
+  if (fireballBtn) {
+    fireballBtn.textContent = `🔥 Boule de feu (${fireballDamage()} dmg / 5 mana)`;
+    fireballBtn.disabled = isPlayerDead;
+  }
+
+  if (restartBtn) {
+    if (isPlayerDead) {
+      const restartStatus = getRestartStatus();
+      restartBtn.hidden = false;
+      if (restartStatus.inCooldown) {
+        restartBtn.disabled = true;
+        restartBtn.textContent = `Recommencer dans ${formatRemainingMs(restartStatus.remainingMs)}`;
+      } else {
+        restartBtn.disabled = false;
+        restartBtn.textContent = `Recommencer (${restartStatus.attemptsLeft}/${RESTART_LIMIT})`;
+      }
+
+      restartBtn.onclick = () => {
+        const consume = consumeRestartAttempt();
+        if (!consume.ok) {
+          showToast(`Attendez ${formatRemainingMs(consume.waitMs)} avant de recommencer.`, "error");
+          renderFight();
+          return;
+        }
+
+        restartAfterDeath();
+        saveState();
+        fillHud();
+        showToast("Nouvelle tentative lancee.", "success");
+        renderFight();
+      };
+    } else {
+      restartBtn.hidden = true;
+      restartBtn.onclick = null;
+      restartBtn.disabled = false;
+    }
+  }
 
   const logEl = document.getElementById("combat-log");
   if (logEl) {
@@ -642,6 +947,37 @@ function renderFight() {
 
   const enemyCard = document.getElementById("enemy-card");
   const enemyFighter = document.getElementById("enemy-fighter");
+  const arenaEl = document.querySelector(".arena-2d");
+
+  const triggerWeaponVfx = (mode) => {
+    if (!arenaEl) return;
+    arenaEl.classList.remove("vfx-pistol", "vfx-laser", "vfx-rocket");
+    void arenaEl.offsetWidth;
+
+    if (mode.startsWith("Pistolet")) {
+      arenaEl.classList.add("vfx-pistol");
+      return;
+    }
+    if (mode.startsWith("Laser")) {
+      arenaEl.classList.add("vfx-laser");
+      return;
+    }
+    if (mode.startsWith("Lance-roquettes")) {
+      arenaEl.classList.add("vfx-rocket");
+    }
+  };
+
+  if (arenaEl) {
+    arenaEl.classList.remove(
+      "arena-tier-1",
+      "arena-tier-2",
+      "arena-tier-3",
+      "arena-tier-4",
+      "arena-tier-5",
+      "arena-tier-6"
+    );
+    arenaEl.classList.add(`arena-tier-${arenaTier}`);
+  }
   if (state.enemyHitFlash) {
     if (enemyCard) enemyCard.classList.add("enemy-hit");
     if (enemyFighter) enemyFighter.classList.add("enemy-hit");
@@ -654,8 +990,11 @@ function renderFight() {
 
   if (attackBtn) {
     attackBtn.onclick = () => {
+      if (state.player.HP <= 0) return;
       const profile = attackProfile();
-      if (profile.usesAmmo) state.player.Ammo -= 1;
+      triggerWeaponVfx(profile.mode);
+      if (profile.consume === "ammo") state.player.Ammo -= 1;
+      if (profile.consume === "laser") state.player.LaserShots -= 1;
       state.goblin.HP -= profile.damage;
       pushCombatMessage(`${profile.mode}: -${profile.damage} PV au gobelin.`, "player");
       state.enemyHitFlash = true;
@@ -666,8 +1005,20 @@ function renderFight() {
     };
   }
 
+  if (deathRefreshTimeoutId) {
+    clearTimeout(deathRefreshTimeoutId);
+    deathRefreshTimeoutId = 0;
+  }
+  if (isPlayerDead) {
+    deathRefreshTimeoutId = setTimeout(() => {
+      deathRefreshTimeoutId = 0;
+      renderFight();
+    }, 1000);
+  }
+
   if (fireballBtn) {
     fireballBtn.onclick = () => {
+      if (state.player.HP <= 0) return;
       if (state.player.Mana >= 5) {
         const damageValue = fireballDamage();
         state.player.Mana -= 5;

@@ -32,16 +32,20 @@
 	</header>
 
 	<section class="arena-2d" aria-label="Carte de combat 2D">
+		<div class="arena-meta">
+			<p class="arena-name" id="arena-name">Arene 1</p>
+			<p class="arena-difficulty" id="arena-difficulty">Difficulte 1/6</p>
+		</div>
 		<div class="arena-horizon"></div>
 		<div class="arena-grid"></div>
 		<div class="fighter player-fighter">
 			<div class="fighter-shadow"></div>
-			<div class="fighter-sprite">🧙</div>
+			<div class="fighter-sprite" id="player-sprite">🧙</div>
 			<p class="fighter-name" id="player-name-fight">-</p>
 		</div>
 		<div class="fighter enemy-fighter" id="enemy-fighter">
 			<div class="fighter-shadow"></div>
-			<div class="fighter-sprite">👹</div>
+			<div class="fighter-sprite" id="enemy-sprite">👹</div>
 			<p class="fighter-name" id="monster-name-fight">-</p>
 		</div>
 	</section>
@@ -76,6 +80,7 @@
 	<section class="action-row">
 		<button class="btn-primary" id="attack-btn">Attaque</button>
 		<button class="btn-secondary" id="fireball-btn">🔥 Boule de feu</button>
+		<button class="btn-danger" id="restart-btn" hidden>Recommencer</button>
 	</section>
 
 	<section class="battle-log">
