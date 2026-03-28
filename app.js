@@ -4,6 +4,7 @@ const ARENA_COUNT = 6;
 const RESTART_LIMIT = 3;
 const RESTART_COOLDOWN_MS = 10 * 60 * 1000;
 const MAGIC_COOLDOWN_MS = 15 * 1000;
+const ROCKET_IMPACT_DELAY_MS = 520;
 
 function magicPowerForCharacterId(id) {
   switch (id) {
@@ -1238,7 +1239,14 @@ function renderFight() {
       if (profile.consume === "laser") state.player.LaserShots -= 1;
       state.goblin.HP -= profile.damage;
       pushCombatMessage(`${profile.mode}: -${profile.damage} PV au gobelin.`, "player");
-      state.enemyHitFlash = true;
+      if (profile.mode.startsWith("Lance-roquettes")) {
+        setTimeout(() => {
+          state.enemyHitFlash = true;
+          if (detectPage() === "fight") renderFight();
+        }, ROCKET_IMPACT_DELAY_MS);
+      } else {
+        state.enemyHitFlash = true;
+      }
       triggerPlayerMagic(profile.mode);
       enemyTurn();
       saveState();

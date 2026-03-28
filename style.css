@@ -448,6 +448,47 @@ body[data-page="fight"] .panel.combat-shell {
         );
 }
 
+.arena-2d.vfx-pistol .arena-grid::before,
+.arena-2d.vfx-rocket .arena-grid::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+}
+
+.arena-2d.vfx-pistol .arena-grid::before {
+    z-index: 2;
+    left: 24.8%;
+    top: 9%;
+    width: 49%;
+    height: 6px;
+    border-radius: 0;
+    background:
+        linear-gradient(rgba(255, 238, 178, 0.96), rgba(255, 238, 178, 0.96)) 0 50% / 6px 6px no-repeat,
+        linear-gradient(rgba(255, 204, 118, 0.92), rgba(255, 204, 118, 0.92)) 8px 50% / 6px 6px no-repeat,
+        linear-gradient(rgba(255, 176, 74, 0.9), rgba(255, 176, 74, 0.9)) 16px 50% / 6px 6px no-repeat;
+    filter: none;
+    image-rendering: pixelated;
+    transform-origin: left center;
+    animation: pistolTracer 0.24s steps(5, end) forwards;
+}
+
+.arena-2d.vfx-rocket .arena-grid::after {
+    z-index: 2;
+    left: 25.2%;
+    top: 6%;
+    width: 54%;
+    height: 16px;
+    border-radius: 0;
+    background:
+        linear-gradient(rgba(210, 210, 210, 0.72), rgba(210, 210, 210, 0.72)) 0 3px / 6px 6px no-repeat,
+        linear-gradient(rgba(172, 172, 172, 0.62), rgba(172, 172, 172, 0.62)) 8px 7px / 6px 6px no-repeat,
+        linear-gradient(rgba(255, 188, 118, 0.62), rgba(255, 188, 118, 0.62)) 16px 11px / 6px 6px no-repeat;
+    filter: none;
+    image-rendering: pixelated;
+    transform-origin: left center;
+    animation: rocketSmokeTrail 0.34s steps(6, end) forwards;
+}
+
 .arena-2d.vfx-pistol::after,
 .arena-2d.vfx-laser::after,
 .arena-2d.vfx-rocket::after {
@@ -468,13 +509,30 @@ body[data-page="fight"] .panel.combat-shell {
     pointer-events: none;
 }
 
+.arena-2d.vfx-pistol::before {
+    content: "";
+    position: absolute;
+    z-index: 4;
+    pointer-events: none;
+    left: 24.2%;
+    top: 59.1%;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, rgba(255, 246, 196, 0.98) 0%, rgba(255, 192, 84, 0.92) 34%, rgba(255, 112, 46, 0.48) 66%, rgba(255, 112, 46, 0) 100%);
+    filter: blur(0.4px);
+    transform-origin: center;
+    animation: pistolMuzzleFlash 0.26s ease-out forwards;
+}
+
 .arena-2d.vfx-pistol::after {
-    left: 21.5%;
-    top: 58.8%;
-    width: 40px;
-    height: 12px;
+    left: 22.8%;
+    top: 59.1%;
+    width: 44px;
+    height: 13px;
     filter: drop-shadow(0 0 6px rgba(255, 213, 120, 0.8));
-    animation: projectileFrames 0.24s steps(4) forwards, shotTravelPistol 0.24s linear forwards;
+    animation: projectileFramesPistol 0.32s steps(4) forwards, shotTravelPistolReal 0.32s cubic-bezier(0.22, 0.68, 0.2, 1) forwards;
 }
 
 .arena-2d.vfx-laser::after {
@@ -508,18 +566,19 @@ body[data-page="fight"] .panel.combat-shell {
     width: 22px;
     height: 22px;
     border-radius: 50%;
+    opacity: 0;
     background: radial-gradient(circle, rgba(255, 244, 168, 0.95) 0%, rgba(255, 129, 47, 0.9) 52%, rgba(255, 56, 56, 0.2) 76%, transparent 100%);
     box-shadow: 0 0 36px rgba(255, 110, 43, 0.75);
-    animation: rocketBlast 0.48s ease-out;
+    animation: rocketBlast 0.36s ease-out 0.52s forwards;
 }
 
 .arena-2d.vfx-rocket::after {
-    left: 21%;
-    top: 58.6%;
-    width: 62px;
+    left: 22.2%;
+    top: 58.8%;
+    width: 64px;
     height: 16px;
     filter: drop-shadow(0 0 8px rgba(255, 156, 90, 0.86));
-    animation: projectileFrames 0.48s steps(4) forwards, shotTravelRocket 0.48s linear forwards;
+    animation: projectileFramesRocket 0.58s steps(4) forwards, shotTravelRocketReal 0.58s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
 }
 
 .fighter {
@@ -541,15 +600,15 @@ body[data-page="fight"] .panel.combat-shell {
 }
 
 .fighter-shadow {
-    width: 170px;
-    height: 28px;
+    width: 210px;
+    height: 34px;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.35);
     filter: blur(1px);
 }
 
 .fighter-sprite {
-    font-size: 10rem;
+    font-size: 12rem;
     line-height: 1;
     filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
 }
@@ -557,8 +616,8 @@ body[data-page="fight"] .panel.combat-shell {
 .fighter-portrait {
     width: auto;
     height: auto;
-    max-width: 220px;
-    max-height: 220px;
+    max-width: 280px;
+    max-height: 280px;
     object-fit: contain;
     border-radius: 0;
     border: none;
@@ -619,6 +678,18 @@ body[data-page="fight"] .panel.combat-shell {
 
 .enemy-fighter.enemy-hit .fighter-sprite {
     animation: enemyHit 0.35s ease;
+}
+
+.arena-2d.vfx-pistol .enemy-fighter.enemy-hit .fighter-sprite {
+    animation: enemyHit 0.35s ease, impactGlowPistol 0.34s ease-out;
+}
+
+.arena-2d.vfx-rocket .enemy-fighter.enemy-hit .fighter-sprite {
+    animation: enemyHit 0.35s ease, impactGlowRocket 0.58s ease-out;
+}
+
+.arena-2d.vfx-rocket .enemy-fighter.enemy-hit .fighter-shadow {
+    animation: impactGroundFlash 0.58s ease-out;
 }
 
 .status-grid {
@@ -1369,12 +1440,12 @@ body[data-page="home"] .home-shell > .actions:last-of-type a {
     }
 
     .fighter-sprite {
-        font-size: 4.8rem;
+        font-size: 6.2rem;
     }
 
     .fighter-portrait {
-        max-width: 130px;
-        max-height: 130px;
+        max-width: 170px;
+        max-height: 170px;
     }
 
     .player-fighter {
@@ -1456,6 +1527,24 @@ body[data-page="home"] .home-shell > .actions:last-of-type a {
     }
 }
 
+@keyframes projectileFramesPistol {
+    from {
+        background-position: 0% 0;
+    }
+    to {
+        background-position: 100% 0;
+    }
+}
+
+@keyframes projectileFramesRocket {
+    from {
+        background-position: 0% 0;
+    }
+    to {
+        background-position: 100% 0;
+    }
+}
+
 @keyframes shotTravelPistol {
     from {
         opacity: 1;
@@ -1486,6 +1575,165 @@ body[data-page="home"] .home-shell > .actions:last-of-type a {
     to {
         opacity: 0;
         transform: translateX(510px) scale(0.95);
+    }
+}
+
+@keyframes shotTravelPistolReal {
+    0% {
+        opacity: 1;
+        transform: translateX(0) translateY(0) scale(1);
+    }
+    15% {
+        transform: translateX(56px) translateY(-0.5px) scale(0.99);
+    }
+    35% {
+        transform: translateX(156px) translateY(-1.2px) scale(0.98);
+    }
+    58% {
+        transform: translateX(292px) translateY(-0.6px) scale(0.965);
+    }
+    80% {
+        opacity: 0.94;
+        transform: translateX(424px) translateY(0.1px) scale(0.95);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(534px) translateY(0.4px) scale(0.92);
+    }
+}
+
+@keyframes shotTravelRocketReal {
+    0% {
+        opacity: 1;
+        transform: translateX(0) translateY(0) rotate(-1.4deg) scale(1.08);
+    }
+    18% {
+        transform: translateX(62px) translateY(-3px) rotate(-2.2deg) scale(1.06);
+    }
+    38% {
+        transform: translateX(174px) translateY(-7px) rotate(-1.8deg) scale(1.03);
+    }
+    60% {
+        transform: translateX(332px) translateY(-5px) rotate(0.5deg) scale(1);
+    }
+    82% {
+        opacity: 0.97;
+        transform: translateX(496px) translateY(0px) rotate(1.4deg) scale(0.97);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(620px) translateY(2px) rotate(2.2deg) scale(0.92);
+    }
+}
+
+@keyframes pistolMuzzleFlash {
+    0% {
+        opacity: 0;
+        transform: scale(0.22);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+    55% {
+        opacity: 0.72;
+        transform: scale(0.86);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.2);
+    }
+}
+
+@keyframes pistolTracer {
+    0% {
+        opacity: 0;
+        transform: none;
+        background-position: 0 50%, 8px 50%, 16px 50%;
+    }
+    22% {
+        opacity: 1;
+        transform: none;
+        background-position: 22px 50%, 30px 50%, 38px 50%;
+    }
+    65% {
+        opacity: 0.95;
+        transform: none;
+        background-position: 54px 50%, 62px 50%, 70px 50%;
+    }
+    100% {
+        opacity: 0;
+        transform: none;
+        background-position: 82px 50%, 90px 50%, 98px 50%;
+    }
+}
+
+@keyframes rocketSmokeTrail {
+    0% {
+        opacity: 0;
+        transform: none;
+        background-position: 0 3px, 8px 7px, 16px 11px;
+    }
+    26% {
+        opacity: 0.84;
+        transform: none;
+        background-position: 20px 3px, 28px 7px, 36px 11px;
+    }
+    70% {
+        opacity: 0.56;
+        transform: none;
+        background-position: 50px 3px, 58px 7px, 66px 11px;
+    }
+    100% {
+        opacity: 0;
+        transform: none;
+        background-position: 78px 3px, 86px 7px, 94px 11px;
+    }
+}
+
+@keyframes impactGlowPistol {
+    0% {
+        filter: drop-shadow(0 0 0 rgba(255, 204, 110, 0));
+    }
+    40% {
+        filter: drop-shadow(0 0 18px rgba(255, 205, 116, 0.74));
+    }
+    100% {
+        filter: drop-shadow(0 0 0 rgba(255, 204, 110, 0));
+    }
+}
+
+@keyframes impactGlowRocket {
+    0% {
+        filter: drop-shadow(0 0 0 rgba(255, 166, 116, 0));
+        transform: translateX(0) scale(1);
+    }
+    28% {
+        filter: drop-shadow(0 0 30px rgba(255, 144, 94, 0.85));
+        transform: translateX(-3px) scale(1.06);
+    }
+    60% {
+        filter: drop-shadow(0 0 22px rgba(255, 120, 84, 0.52));
+        transform: translateX(2px) scale(1.02);
+    }
+    100% {
+        filter: drop-shadow(0 0 0 rgba(255, 166, 116, 0));
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes impactGroundFlash {
+    0% {
+        background: rgba(0, 0, 0, 0.35);
+        filter: blur(1px);
+    }
+    40% {
+        background: rgba(255, 128, 64, 0.34);
+        filter: blur(2px);
+    }
+    100% {
+        background: rgba(0, 0, 0, 0.35);
+        filter: blur(1px);
     }
 }
 
