@@ -3,6 +3,29 @@ const SAVE_SLOT_KEY = "projet-red-save-slot";
 const ARENA_COUNT = 6;
 const RESTART_LIMIT = 3;
 const RESTART_COOLDOWN_MS = 10 * 60 * 1000;
+const MAGIC_COOLDOWN_MS = 15 * 1000;
+
+function magicPowerForCharacterId(id) {
+  switch (id) {
+    case "viking": return "Rage runique";
+    case "militaire": return "Aura tactique";
+    case "zeusbot": return "Surcharge arcane";
+    default: return "Etincelle mystique";
+  }
+}
+
+function magicPowerForMonsterName(name) {
+  switch (name) {
+    case "Gobelin": return "Crachat toxique";
+    case "Orc": return "Cri de guerre";
+    case "Troll": return "Regeneration brute";
+    case "Wyrm": return "Souffle draconique";
+    case "Demon": return "Flamme infernale";
+    case "Titan": return "Onde cataclysmique";
+    default: return "Furie occulte";
+  }
+}
+
 const CHARACTER_PRESETS = [
   {
     Id: "viking",
@@ -10,6 +33,7 @@ const CHARACTER_PRESETS = [
     Class: "Viking",
     Avatar: "Viking style Kratos .png",
     FighterIcon: "🪓",
+    MagicPower: "Rage runique",
     MaxHP: 115,
     MaxMana: 8,
     Gold: 50,
@@ -21,6 +45,7 @@ const CHARACTER_PRESETS = [
     Class: "Soldat",
     Avatar: "Personnage militaire.png",
     FighterIcon: "🪖",
+    MagicPower: "Aura tactique",
     MaxHP: 100,
     MaxMana: 10,
     Gold: 50,
@@ -32,6 +57,7 @@ const CHARACTER_PRESETS = [
     Class: "Robot",
     Avatar: "Robot style Zeus Rea.png",
     FighterIcon: "🤖",
+    MagicPower: "Surcharge arcane",
     MaxHP: 92,
     MaxMana: 16,
     Gold: 50,
@@ -49,6 +75,7 @@ function playerFromCharacter(id) {
     CharacterId: preset.Id,
     Avatar: preset.Avatar,
     FighterIcon: preset.FighterIcon,
+    MagicPower: preset.MagicPower || magicPowerForCharacterId(preset.Id),
     Name: preset.Name,
     Class: preset.Class,
     Level: 1,
@@ -62,6 +89,7 @@ function playerFromCharacter(id) {
     Turn: 0,
     Inventory: ["Potion", "Potion"],
     Skills: [...preset.Skills],
+    MagicCooldownUntil: 0,
     Ammo: 0,
     LaserShots: 0,
     Equip: {
@@ -100,7 +128,14 @@ function monsterForLevel(level) {
   const name = names[arenaTier - 1];
   const maxHP = 60 + level * 20 + arenaTier * 16;
   const atk = 6 + level * 3 + arenaTier * 2;
-  return { Name: name, HP: maxHP, MaxHP: maxHP, Atk: atk, ArenaTier: arenaTier };
+  return {
+    Name: name,
+    HP: maxHP,
+    MaxHP: maxHP,
+    Atk: atk,
+    ArenaTier: arenaTier,
+    MagicPower: magicPowerForMonsterName(name),
+  };
 }
 
 function emptyState() {
@@ -108,7 +143,7 @@ function emptyState() {
   return {
     player,
     goblin: monsterForLevel(player.Level),
-    combatLog: [{ Text: "Le gobelin grogne et se prepare au combat.", Type: "system" }],
+    combatLog: [{ Text: `Le ${monsterForLevel(player.Level).Name} se prepare. Pouvoir: ${monsterForLevel(player.Level).MagicPower}.`, Type: "system" }],
     enemyHitFlash: false,
     lastFightHP: player.HP,
     lastFightMana: player.Mana,
@@ -153,6 +188,9 @@ function loadState() {
     if (!Number.isFinite(state.player.Ammo)) state.player.Ammo = 0;
     if (!Number.isFinite(state.player.LaserShots)) state.player.LaserShots = 0;
     if (!Number.isFinite(state.player.Turn)) state.player.Turn = 0;
+    if (!Number.isFinite(state.player.MagicCooldownUntil)) state.player.MagicCooldownUntil = 0;
+    if (!state.player.MagicPower) state.player.MagicPower = magicPowerForCharacterId(state.player.CharacterId);
+    if (!state.goblin.MagicPower) state.goblin.MagicPower = magicPowerForMonsterName(state.goblin.Name);
     if (!state.restartControl || typeof state.restartControl !== "object") {
       state.restartControl = { used: 0, cooldownUntil: 0 };
     }
@@ -169,6 +207,7 @@ function loadState() {
 let state = loadState();
 let toastAudioContext = null;
 let deathRefreshTimeoutId = 0;
+let magicCooldownRefreshTimeoutId = 0;
 
 function saveState() {
   localStorage.setItem(STATE_KEY, JSON.stringify(state));
@@ -349,7 +388,10 @@ function gainXP(amount) {
     state.goblin = monsterForLevel(player.Level);
     const newArenaTier = arenaTierForLevel(player.Level);
     if (newArenaTier > oldArenaTier) {
-      pushCombatMessage(`Nouvelle arene debloquee: Arene ${newArenaTier}. Le combat devient plus difficile.`, "warning");
+      player.Gold += 70;
+      player.MaxMana += 8;
+      player.Mana = player.MaxMana;
+      pushCombatMessage(`Nouvelle arene debloquee: Arene ${newArenaTier}. Recompense: +70 or et +8 mana max.`, "warning");
     }
     pushCombatMessage(`Niveau ${player.Level} atteint. Un ${state.goblin.Name} plus puissant apparait!`, "system");
   }
@@ -365,6 +407,74 @@ function fireballDamage() {
 
 function enemyAttackDamage() {
   return maxInt(state.goblin.Atk, Math.floor(state.player.MaxHP / 12));
+}
+
+function triggerPlayerMagic(sourceLabel) {
+  if (state.player.HP <= 0 || state.goblin.HP <= 0) return;
+
+  const power = state.player.MagicPower || magicPowerForCharacterId(state.player.CharacterId);
+  const roll = Math.random();
+  let bonusDamage = 0;
+
+  if (power === "Rage runique" && roll < 0.28) {
+    bonusDamage = 9;
+    state.player.HP = Math.min(state.player.MaxHP, state.player.HP + 5);
+    pushCombatMessage(`${power}: +${bonusDamage} degats avec ${sourceLabel}, et +5 PV pour vous.`, "critical");
+  }
+
+  if (power === "Aura tactique" && roll < 0.28) {
+    bonusDamage = 6;
+    state.player.HP = Math.min(state.player.MaxHP, state.player.HP + 3);
+    state.player.Mana = Math.min(state.player.MaxMana, state.player.Mana + 4);
+    pushCombatMessage(`${power}: +${bonusDamage} degats, +3 PV et +4 mana.`, "system");
+  }
+
+  if (power === "Surcharge arcane" && roll < 0.32) {
+    bonusDamage = 12;
+    state.player.Mana = Math.min(state.player.MaxMana, state.player.Mana + 6);
+    pushCombatMessage(`${power}: eclair mystique! +${bonusDamage} degats et +6 mana.`, "critical");
+  }
+
+  if (bonusDamage > 0) {
+    state.goblin.HP -= bonusDamage;
+    state.enemyHitFlash = true;
+  }
+}
+
+function castPlayerMagicPower() {
+  const power = state.player.MagicPower || magicPowerForCharacterId(state.player.CharacterId);
+  let damage = 0;
+  let text = "";
+
+  if (power === "Rage runique") {
+    damage = 24;
+    state.player.HP = Math.min(state.player.MaxHP, state.player.HP + 8);
+    text = `${power}: frappe mystique! -${damage} PV et +8 PV.`;
+  }
+
+  if (power === "Aura tactique") {
+    damage = 18;
+    state.player.HP = Math.min(state.player.MaxHP, state.player.HP + 5);
+    state.player.Mana = Math.min(state.player.MaxMana, state.player.Mana + 10);
+    text = `${power}: -${damage} PV, +5 PV et +10 mana.`;
+  }
+
+  if (power === "Surcharge arcane") {
+    damage = 28;
+    state.player.Mana = Math.min(state.player.MaxMana, state.player.Mana + 8);
+    state.player.LaserShots += 1;
+    text = `${power}: eclair majeur! -${damage} PV, +8 mana et +1 tir laser.`;
+  }
+
+  if (damage <= 0) {
+    damage = 16;
+    text = `${power}: -${damage} PV.`;
+  }
+
+  state.goblin.HP -= damage;
+  state.enemyHitFlash = true;
+  state.player.MagicCooldownUntil = Date.now() + MAGIC_COOLDOWN_MS;
+  pushCombatMessage(text, "critical");
 }
 
 function attackProfile() {
@@ -516,11 +626,12 @@ function useItem(item) {
       if (!consumeItemOnce("Grenade")) return { ok: false, message: "Objet introuvable dans l'inventaire.", type: "error" };
       state.goblin.HP -= 22;
       if (state.goblin.HP <= 0) {
+        const defeatedMonster = state.goblin.Name;
         state.goblin = monsterForLevel(state.player.Level);
         state.player.Gold += 10;
         gainXP(5);
         state.player.Turn = 0;
-        return { ok: true, message: "Grenade lancee: monstre vaincu! +10 or et +5 XP.", type: "success" };
+        return { ok: true, message: `Victoire ! ${defeatedMonster} vaincu avec la grenade. +10 or et +5 XP.`, type: "success" };
       }
       return { ok: true, message: "Grenade lancee: -22 PV au monstre actuel.", type: "success" };
     default:
@@ -557,7 +668,47 @@ function buyItem(item) {
 function enemyTurn() {
   state.player.Turn += 1;
   let damage = enemyAttackDamage();
+  let manaDrain = 0;
   const turnLabel = `Tour ${state.player.Turn}`;
+
+  if (state.goblin.HP > 0) {
+    const roll = Math.random();
+    const monsterPower = state.goblin.MagicPower || magicPowerForMonsterName(state.goblin.Name);
+
+    if (monsterPower === "Crachat toxique" && roll < 0.22) {
+      damage += 6;
+      pushCombatMessage(`${turnLabel}: ${state.goblin.Name} utilise ${monsterPower} (+6 degats).`, "enemy");
+    }
+
+    if (monsterPower === "Cri de guerre" && roll < 0.24) {
+      damage += 10;
+      pushCombatMessage(`${turnLabel}: ${state.goblin.Name} lance ${monsterPower} (+10 degats).`, "critical");
+    }
+
+    if (monsterPower === "Regeneration brute" && roll < 0.28) {
+      const heal = 12;
+      state.goblin.HP = Math.min(state.goblin.MaxHP, state.goblin.HP + heal);
+      pushCombatMessage(`${turnLabel}: ${state.goblin.Name} active ${monsterPower} et recupere ${heal} PV.`, "warning");
+    }
+
+    if (monsterPower === "Souffle draconique" && roll < 0.3) {
+      damage += 14;
+      manaDrain = 3;
+      pushCombatMessage(`${turnLabel}: ${state.goblin.Name} dechaine ${monsterPower} (+14 degats).`, "critical");
+    }
+
+    if (monsterPower === "Flamme infernale" && roll < 0.3) {
+      damage += 16;
+      manaDrain = 5;
+      pushCombatMessage(`${turnLabel}: ${state.goblin.Name} canalise ${monsterPower} (+16 degats).`, "critical");
+    }
+
+    if (monsterPower === "Onde cataclysmique" && roll < 0.34) {
+      damage += 20;
+      manaDrain = 7;
+      pushCombatMessage(`${turnLabel}: ${state.goblin.Name} frappe avec ${monsterPower} (+20 degats).`, "critical");
+    }
+  }
 
   if (state.player.Turn % 3 === 0) {
     damage *= 2;
@@ -567,14 +718,19 @@ function enemyTurn() {
   if (state.goblin.HP > 0) {
     state.player.HP -= damage;
     pushCombatMessage(`${turnLabel}: le gobelin attaque et inflige ${damage} degats.`, "enemy");
+    if (manaDrain > 0) {
+      state.player.Mana = Math.max(0, state.player.Mana - manaDrain);
+      pushCombatMessage(`${turnLabel}: votre mana baisse de ${manaDrain}.`, "warning");
+    }
   }
 
   if (state.goblin.HP <= 0) {
+    const defeatedMonster = state.goblin.Name;
     state.goblin = monsterForLevel(state.player.Level);
     state.player.Gold += 10;
     gainXP(5);
     state.player.Turn = 0;
-    pushCombatMessage(`Victoire! +10 or et +5 XP. Un ${state.goblin.Name} apparait.`, "system");
+    pushCombatMessage(`Victoire ! ${defeatedMonster} vaincu. +10 or et +5 XP. Un ${state.goblin.Name} apparait (Pouvoir: ${state.goblin.MagicPower}).`, "system");
   }
 
   if (state.player.HP <= 0) {
@@ -613,6 +769,7 @@ function renderCharacterSelector() {
           <h3>${entry.Name}</h3>
           <p class="character-class">${entry.Class}</p>
           <p class="character-stats">${hpText} | ${manaText}</p>
+          <p class="character-power">✨ ${entry.MagicPower || magicPowerForCharacterId(entry.Id)}</p>
           <button class="btn-secondary choose-character-btn" data-character="${entry.Id}" ${active ? "disabled" : ""}>
             ${active ? "Selectionne" : "Choisir"}
           </button>
@@ -811,6 +968,25 @@ function renderShop() {
   const goldEl = document.getElementById("shop-gold");
   if (goldEl) goldEl.textContent = state.player.Gold;
 
+  const base = basicAttackDamage();
+  const weaponDamages = {
+    Epee: maxInt(base + 4, Math.floor(state.player.MaxHP / 6)),
+    Pistolet: maxInt(base + 10, Math.floor(state.player.MaxHP / 4)),
+    Laser: maxInt(base + 18, Math.floor(state.player.MaxHP / 3)),
+    "Lance-roquettes": maxInt(base + 16, Math.floor(state.player.MaxHP / 2.5)),
+  };
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  setText("shop-dmg-epee", `Degats: ${weaponDamages.Epee}`);
+  setText("shop-dmg-pistolet", `Degats: ${weaponDamages.Pistolet}`);
+  setText("shop-dmg-laser", `Degats: ${weaponDamages.Laser}`);
+  setText("shop-dmg-roquette", `Degats: ${weaponDamages["Lance-roquettes"]}`);
+  setText("shop-dmg-grenade", "Degats: 22");
+
   document.querySelectorAll(".buy-btn").forEach((button) => {
     button.onclick = () => {
       const item = button.getAttribute("data-item");
@@ -916,6 +1092,7 @@ function renderFight() {
   setBarState(playerManaBar, manaState);
 
   const attackBtn = document.getElementById("attack-btn");
+  const magicBtn = document.getElementById("magic-btn");
   const restartBtn = document.getElementById("restart-btn");
   const playerSprite = document.getElementById("player-sprite");
   const enemySprite = document.getElementById("enemy-sprite");
@@ -953,6 +1130,20 @@ function renderFight() {
   if (fireballBtn) {
     fireballBtn.textContent = `🔥 Boule de feu (${fireballDamage()} dmg / 5 mana)`;
     fireballBtn.disabled = isPlayerDead;
+  }
+
+  if (magicBtn) {
+    const now = Date.now();
+    const remainingMs = Math.max(0, (state.player.MagicCooldownUntil || 0) - now);
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
+    if (remainingSeconds > 0) {
+      magicBtn.textContent = `✨ Pouvoir magique (${remainingSeconds}s)`;
+      magicBtn.disabled = true;
+    } else {
+      const powerName = state.player.MagicPower || magicPowerForCharacterId(state.player.CharacterId);
+      magicBtn.textContent = `✨ ${powerName}`;
+      magicBtn.disabled = isPlayerDead;
+    }
   }
 
   if (restartBtn) {
@@ -1048,6 +1239,7 @@ function renderFight() {
       state.goblin.HP -= profile.damage;
       pushCombatMessage(`${profile.mode}: -${profile.damage} PV au gobelin.`, "player");
       state.enemyHitFlash = true;
+      triggerPlayerMagic(profile.mode);
       enemyTurn();
       saveState();
       fillHud();
@@ -1059,10 +1251,23 @@ function renderFight() {
     clearTimeout(deathRefreshTimeoutId);
     deathRefreshTimeoutId = 0;
   }
+
+  if (magicCooldownRefreshTimeoutId) {
+    clearTimeout(magicCooldownRefreshTimeoutId);
+    magicCooldownRefreshTimeoutId = 0;
+  }
   if (isPlayerDead) {
     deathRefreshTimeoutId = setTimeout(() => {
       deathRefreshTimeoutId = 0;
       renderFight();
+    }, 1000);
+  }
+
+  const magicCooldownRemainingMs = Math.max(0, (state.player.MagicCooldownUntil || 0) - Date.now());
+  if (!isPlayerDead && magicCooldownRemainingMs > 0) {
+    magicCooldownRefreshTimeoutId = setTimeout(() => {
+      magicCooldownRefreshTimeoutId = 0;
+      if (detectPage() === "fight") renderFight();
     }, 1000);
   }
 
@@ -1075,6 +1280,7 @@ function renderFight() {
         state.goblin.HP -= damageValue;
         pushCombatMessage(`Boule de feu critique: -${damageValue} PV au gobelin.`, "player");
         state.enemyHitFlash = true;
+        triggerPlayerMagic("Boule de feu");
       } else {
         pushCombatMessage("Mana insuffisant pour lancer Boule de feu.", "warning");
       }
@@ -1105,6 +1311,25 @@ function renderFight() {
       } else {
         pushCombatMessage(result.message, result.type);
       }
+      enemyTurn();
+      saveState();
+      fillHud();
+      renderFight();
+    };
+  }
+
+  if (magicBtn) {
+    magicBtn.onclick = () => {
+      if (state.player.HP <= 0) return;
+
+      const remainingMs = Math.max(0, (state.player.MagicCooldownUntil || 0) - Date.now());
+      if (remainingMs > 0) {
+        pushCombatMessage(`Pouvoir magique en recharge: ${Math.ceil(remainingMs / 1000)}s.`, "warning");
+        renderFight();
+        return;
+      }
+
+      castPlayerMagicPower();
       enemyTurn();
       saveState();
       fillHud();
